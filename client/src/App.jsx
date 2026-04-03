@@ -12,10 +12,14 @@ import useAnalysis from './hooks/useAnalysis'
 import OddsTicker from './components/OddsTicker'
 import BigBoard from './components/BigBoard'
 import ValueProp from './components/ValueProp'
+import AuthModal from './components/AuthModal'
+import { useAuth } from './contexts/AuthContext'
 
 export default function App() {
   const [unitSize, setUnitSize] = useState(50)
   const [betFilter, setBetFilter] = useState('all')
+  const [showAuth, setShowAuth] = useState(false)
+  const { user } = useAuth()
   const {
     phase,
     selectedSport,
@@ -29,6 +33,10 @@ export default function App() {
   } = useAnalysis()
 
   const handleSelectSport = (sport) => {
+    if (!user) {
+      setShowAuth(true)
+      return
+    }
     setBetFilter('all')
     startAnalysis(sport)
   }
@@ -76,6 +84,7 @@ export default function App() {
           unitSize={unitSize}
           onUnitSizeChange={handleUnitSizeChange}
           isAnalyzing={phase === 'analyzing'}
+          onLoginClick={() => setShowAuth(true)}
         />
 
         <main className="app-content">
@@ -224,6 +233,7 @@ export default function App() {
           )}
         </main>
       </div>
+      {showAuth && <AuthModal onDismiss={() => setShowAuth(false)} />}
     </>
   )
 }

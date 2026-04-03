@@ -1,6 +1,8 @@
+import { useAuth } from '../contexts/AuthContext'
 import './Header.css'
 
-export default function Header({ unitSize, onUnitSizeChange, isAnalyzing }) {
+export default function Header({ unitSize, onUnitSizeChange, isAnalyzing, onLoginClick }) {
+  const { user, signOut } = useAuth()
   return (
     <header className="header" id="main-header">
       <div className="header-logo">
@@ -25,6 +27,17 @@ export default function Header({ unitSize, onUnitSizeChange, isAnalyzing }) {
         <div className="header-status">
           <div className={`status-dot ${isAnalyzing ? '' : 'offline'}`} />
           <span>{isAnalyzing ? 'ANALYZING' : 'MOCK MODE'}</span>
+        </div>
+        <div className="header-auth">
+          {user ? (
+            <button className="auth-btn interactive" onClick={() => signOut()}>
+              Sign Out
+            </button>
+          ) : (
+            <button className="auth-btn interactive" onClick={onLoginClick}>
+              Terminal Login
+            </button>
+          )}
         </div>
       </div>
     </header>

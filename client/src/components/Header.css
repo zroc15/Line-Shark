@@ -111,6 +111,31 @@
   animation: none;
 }
 
+.header-auth {
+  margin-left: var(--space-sm);
+  padding-left: var(--space-md);
+  border-left: 1px solid var(--border);
+}
+
+.auth-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.auth-btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.05);
+}
+
 @media (max-width: 768px) {
   .header {
     padding: var(--space-sm) var(--space-md);
