@@ -1,6 +1,6 @@
 export const maxDuration = 60; // Extend Vercel timeout to 60 seconds
 
-import { runPipeline } from '../../pipeline/pipeline.js';
+import { runPipeline } from '../pipeline/pipeline.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
