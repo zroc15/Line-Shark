@@ -175,7 +175,7 @@ export default function App() {
                       month: 'long',
                       day: 'numeric',
                       year: 'numeric',
-                    })} · {sortedResults.length} markets analyzed · MOCK DATA
+                    })} · {sortedResults.length} markets analyzed · <span style={{color: 'var(--success-color)'}}>LIVE DATA</span>
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>

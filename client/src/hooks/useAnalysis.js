@@ -1,7 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
-import { getMockGames, getMockLogs } from '../utils/mockData'
-
-const STAGES = ['scrape', 'intel', 'analyze']
+import { useState, useCallback } from 'react'
+import { createAnalysisStream } from '../utils/api'
 
 export default function useAnalysis() {
   const [state, setState] = useState({
@@ -28,9 +26,7 @@ export default function useAnalysis() {
     }))
   }, [])
 
-  const runMockPipeline = useCallback((sport) => {
-    clearTimeouts()
-
+  const runLivePipeline = useCallback((sport) => {
     setState({
       phase: 'analyzing',
       selectedSport: sport,
@@ -41,60 +37,41 @@ export default function useAnalysis() {
       error: null,
     })
 
-    let totalDelay = 300
-
-    // Run each stage with simulated delays
-    STAGES.forEach((stage, stageIndex) => {
-      // Start stage
-      const startId = setTimeout(() => {
+    // This returns the unsubscribe/close function
+    const cancelStream = createAnalysisStream(sport, 50, {
+      onStage: (data) => {
+        if (data.status === 'started') {
+           setState(prev => ({ ...prev, currentStage: data.stage }))
+        } else if (data.status === 'complete') {
+           setState(prev => ({ 
+             ...prev, 
+             completedStages: [...prev.completedStages, data.stage]
+           }))
+        }
+      },
+      onLog: (data) => addLog(data.message),
+      onResult: (results) => {
         setState(prev => ({
           ...prev,
-          currentStage: stage,
+          phase: 'results',
+          currentStage: null,
+          results: results,
         }))
-      }, totalDelay)
-      timeoutRefs.current.push(startId)
-      totalDelay += 400
-
-      // Add logs for this stage
-      const logs = getMockLogs(stage, sport)
-      logs.forEach((log, logIndex) => {
-        const logId = setTimeout(() => {
-          addLog(log)
-        }, totalDelay)
-        timeoutRefs.current.push(logId)
-        totalDelay += 250 + Math.random() * 300
-      })
-
-      // Complete stage
-      const completeId = setTimeout(() => {
-        setState(prev => ({
-          ...prev,
-          completedStages: [...prev.completedStages, stage],
-        }))
-      }, totalDelay)
-      timeoutRefs.current.push(completeId)
-      totalDelay += 500
+      },
+      onError: (errMessage) => {
+         addLog(`ERROR: ${errMessage}`)
+         setState(prev => ({ ...prev, error: errMessage }))
+      }
     })
-
-    // Show results
-    const resultsId = setTimeout(() => {
-      const games = getMockGames(sport)
-      setState(prev => ({
-        ...prev,
-        phase: 'results',
-        currentStage: null,
-        results: games,
-      }))
-    }, totalDelay + 500)
-    timeoutRefs.current.push(resultsId)
+    
+    // Cleanup reference if needed here.
   }, [addLog])
 
   const startAnalysis = useCallback((sport) => {
-    runMockPipeline(sport)
-  }, [runMockPipeline])
+    runLivePipeline(sport)
+  }, [runLivePipeline])
 
   const reset = useCallback(() => {
-    clearTimeouts()
     setState({
       phase: 'select',
       selectedSport: null,
@@ -108,9 +85,9 @@ export default function useAnalysis() {
 
   const reanalyze = useCallback(() => {
     if (state.selectedSport) {
-      runMockPipeline(state.selectedSport)
+      runLivePipeline(state.selectedSport)
     }
-  }, [state.selectedSport, runMockPipeline])
+  }, [state.selectedSport, runLivePipeline])
 
   return {
     ...state,
