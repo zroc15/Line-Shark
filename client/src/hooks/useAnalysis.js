@@ -12,12 +12,7 @@ export default function useAnalysis() {
     error: null,
   })
 
-  const timeoutRefs = useRef([])
-
-  const clearTimeouts = () => {
-    timeoutRefs.current.forEach(clearTimeout)
-    timeoutRefs.current = []
-  }
+  // Mock delays were removed
 
   const addLog = useCallback((log) => {
     setState(prev => ({
