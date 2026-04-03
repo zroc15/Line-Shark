@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 const ODDS_API_KEY = process.env.ODDS_API_KEY
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4'
 
