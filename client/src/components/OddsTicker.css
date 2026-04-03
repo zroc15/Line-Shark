@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════
+   ODDS TICKER — Live scrolling marquee
+   ═══════════════════════════════════════════════════ */
+
+.odds-ticker {
+  display: flex;
+  align-items: center;
+  background: rgba(10, 14, 26, 0.85);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  height: 36px;
+  position: relative;
+  z-index: 50;
+}
+
+/* Gradient fade edges */
+.odds-ticker::before,
+.odds-ticker::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.odds-ticker::before {
+  left: 64px;
+  background: linear-gradient(90deg, rgba(10, 14, 26, 0.95), transparent);
+}
+
+.odds-ticker::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(10, 14, 26, 0.95), transparent);
+}
+
+.ticker-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--green);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  z-index: 3;
+  background: rgba(10, 14, 26, 0.95);
+  height: 100%;
+}
+
+.ticker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.ticker-track-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: tickerScroll 45s linear infinite;
+  will-change: transform;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.ticker-sport {
+  font-size: 0.8rem;
+}
+
+.ticker-line {
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.ticker-arrow {
+  font-size: 0.55rem;
+}
+
+.ticker-arrow.down {
+  color: var(--green);
+}
+
+.ticker-arrow.up {
+  color: var(--red);
+}
+
+.ticker-prev {
+  color: var(--text-tertiary);
+  font-size: 0.6rem;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.ticker-sep {
+  color: var(--text-tertiary);
+  font-size: 0.6rem;
+  opacity: 0.4;
+}
+
+.ticker-curr {
+  font-weight: 700;
+}
+
+.ticker-curr.down {
+  color: var(--green);
+}
+
+.ticker-curr.up {
+  color: var(--red);
+}
+
+.ticker-book {
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  letter-spacing: 0.04em;
+}
+
+.ticker-divider {
+  color: var(--border);
+  margin: 0 4px;
+  opacity: 0.4;
+}
+
+@media (max-width: 768px) {
+  .odds-ticker {
+    height: 30px;
+  }
+
+  .ticker-label {
+    padding: 0 var(--space-sm);
+    font-size: 0.55rem;
+  }
+
+  .ticker-item {
+    font-size: 0.6rem;
+    gap: 3px;
+    padding: 0 4px;
+  }
+
+  .ticker-prev,
+  .ticker-sep,
+  .ticker-book {
+    display: none;
+  }
+}

@@ -1,0 +1,95 @@
+.bet-filter-container {
+  margin-bottom: var(--space-xl);
+  animation: fadeInUp 0.3s var(--ease-out);
+}
+
+.bet-filter-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+
+.bet-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bet-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  transition: all var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.bet-filter-btn:hover:not(.empty) {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.bet-filter-btn.active {
+  border-color: var(--green);
+  background: rgba(0, 255, 135, 0.08);
+  color: var(--green);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
+.bet-filter-btn.empty {
+  opacity: 0.35;
+}
+
+.bet-filter-icon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.bet-filter-name {
+  letter-spacing: 0.02em;
+}
+
+.bet-filter-count {
+  background: var(--bg-elevated);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+
+.bet-filter-btn.active .bet-filter-count {
+  background: rgba(0, 255, 135, 0.2);
+  color: var(--green);
+}
+
+@media (max-width: 600px) {
+  .bet-filter-row {
+    gap: 4px;
+  }
+
+  .bet-filter-btn {
+    padding: 5px 10px;
+    font-size: 0.65rem;
+  }
+
+  .bet-filter-name {
+    display: none;
+  }
+
+  .bet-filter-icon {
+    font-size: 1rem;
+  }
+}

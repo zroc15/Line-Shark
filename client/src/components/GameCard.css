@@ -1,0 +1,599 @@
+.game-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-out);
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+
+.game-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* BUY card left border glow */
+.game-card.buy {
+  border-left: 3px solid var(--green);
+}
+
+.game-card.buy::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(90deg, var(--green-glow), transparent);
+  pointer-events: none;
+  animation: pulse-green 2s ease-in-out 1;
+}
+
+/* BYE card dimming */
+.game-card.bye {
+  opacity: 0.7;
+  border-left: 3px solid var(--red-dim);
+}
+
+.game-card.bye:hover {
+  opacity: 0.85;
+}
+
+/* Hot pick animated border (confidence >= 8) */
+.game-card.hot-pick {
+  border: 2px solid transparent;
+  background-image: linear-gradient(var(--bg-card), var(--bg-card)),
+    linear-gradient(90deg, var(--green), var(--cyan), var(--green));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-size: 100% 100%, 200% 100%;
+  animation: borderTrace 3s linear infinite, fadeInUp 0.4s var(--ease-out) both;
+}
+
+.game-card.hot-pick::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--green), var(--cyan), var(--green));
+  background-size: 200% 100%;
+  animation: borderTrace 3s linear infinite;
+  z-index: -1;
+  opacity: 0.3;
+  filter: blur(8px);
+}
+
+/* Mortgage pick extra glow */
+.game-card.mortgage-pick {
+  box-shadow: 0 0 40px var(--green-glow), 0 0 80px var(--green-glow);
+}
+
+/* ── Top Row: Market Type + Edge ── */
+.game-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.market-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.market-type-badge.player_prop {
+  border-color: rgba(0, 212, 255, 0.3);
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.market-type-badge.first_half {
+  border-color: rgba(255, 140, 66, 0.3);
+  color: var(--orange);
+  background: rgba(255, 140, 66, 0.06);
+}
+
+.market-type-badge.team_total {
+  border-color: rgba(255, 214, 0, 0.3);
+  color: var(--yellow);
+  background: rgba(255, 214, 0, 0.06);
+}
+
+.market-type-badge.alt_line {
+  border-color: rgba(160, 120, 255, 0.3);
+  color: #a078ff;
+  background: rgba(160, 120, 255, 0.06);
+}
+
+.edge-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  background: rgba(0, 255, 135, 0.08);
+  border: 1px solid rgba(0, 255, 135, 0.2);
+}
+
+.edge-label {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.edge-value {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ── Specific Bet Headline ── */
+.game-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-sm);
+  gap: var(--space-md);
+}
+
+.game-bet-headline {
+  flex: 1;
+}
+
+.specific-bet {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rating-inline {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.rating-inline.buy {
+  color: var(--green);
+  background: rgba(0, 255, 135, 0.12);
+}
+
+.rating-inline.bye {
+  color: var(--red-dim);
+  background: rgba(255, 51, 102, 0.1);
+}
+
+.specific-odds {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 4px;
+}
+
+.odds-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.best-book {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Matchup Context Row ── */
+.game-matchup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.game-teams-small {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.game-time {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+}
+
+/* ── Book Comparison ── */
+.book-comparison {
+  margin-bottom: var(--space-md);
+}
+
+.book-comparison-label {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.book-comparison-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.book-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.book-chip.best {
+  border-color: rgba(0, 255, 135, 0.3);
+  background: rgba(0, 255, 135, 0.05);
+}
+
+.book-chip.best .book-odds {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.book-name {
+  color: var(--text-tertiary);
+  font-size: 0.55rem;
+}
+
+.book-odds {
+  color: var(--text-secondary);
+}
+
+/* Rating badge */
+.rating-badge {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.rating-badge.buy {
+  background: rgba(0, 255, 135, 0.15);
+  color: var(--green);
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+.rating-badge.bye {
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--red-dim);
+}
+
+/* Confidence section */
+.game-confidence {
+  margin-bottom: var(--space-md);
+}
+
+.game-confidence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.game-confidence-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.game-confidence-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.game-confidence-value.high {
+  color: var(--green);
+}
+
+.game-confidence-value.low {
+  color: var(--red);
+}
+
+/* Bet info */
+.game-bet-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.bet-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bet-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.bet-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.bet-value.buy {
+  color: var(--green);
+}
+
+.bet-value.bye {
+  color: var(--red-dim);
+}
+
+.bet-tier {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.bet-tier.mortgage {
+  background: rgba(0, 255, 135, 0.15);
+  color: var(--green);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.bet-tier.premium {
+  color: var(--green);
+  background: rgba(0, 255, 135, 0.1);
+}
+
+.bet-tier.strong {
+  color: var(--cyan);
+}
+
+/* Expand button */
+.game-expand-btn {
+  width: 100%;
+  padding: var(--space-sm) 0;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.game-expand-btn:hover {
+  color: var(--text-secondary);
+}
+
+.expand-arrow {
+  transition: transform var(--duration-normal) var(--ease-spring);
+  display: inline-block;
+}
+
+.expand-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Expanded detail */
+.game-detail {
+  overflow: hidden;
+  transition: max-height var(--duration-slow) var(--ease-out),
+              opacity var(--duration-normal) var(--ease-out);
+  max-height: 0;
+  opacity: 0;
+}
+
+.game-detail.open {
+  max-height: 600px;
+  opacity: 1;
+  transition: max-height var(--duration-slow) var(--ease-out),
+              opacity var(--duration-normal) var(--ease-out) 150ms;
+}
+
+.game-detail-content {
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-md);
+}
+
+.detail-section {
+  margin-bottom: var(--space-md);
+}
+
+.detail-section-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+
+.detail-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-factor {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.detail-factor .factor-icon {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.detail-factor .factor-icon.positive {
+  color: var(--green);
+}
+
+.detail-factor .factor-icon.negative {
+  color: var(--red);
+}
+
+.game-reasoning {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: var(--space-md);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border-left: 2px solid var(--border);
+}
+
+/* Sparkline */
+.sparkline-container {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+}
+
+.sparkline-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-xs);
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 30px;
+}
+
+.sparkline-bar {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 1px 1px 0 0;
+  transition: height 0.6s var(--ease-out);
+}
+
+.sparkline-bar.win {
+  background: var(--green);
+  opacity: 0.7;
+}
+
+.sparkline-bar.draw {
+  background: var(--yellow);
+  opacity: 0.5;
+}
+
+.sparkline-bar.loss {
+  background: var(--red);
+  opacity: 0.5;
+}
+
+/* Cards grid */
+.game-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .game-card {
+    padding: var(--space-md);
+  }
+
+  .specific-bet {
+    font-size: 1rem;
+  }
+
+  .bet-value {
+    font-size: 1.1rem;
+  }
+
+  .game-bet-info {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .book-comparison-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .book-chip {
+    flex-shrink: 0;
+  }
+}
