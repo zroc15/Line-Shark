@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY
 const FIRECRAWL_API_BASE = 'https://api.firecrawl.dev/v1'
 
