@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { TICKER_DATA } from '../utils/dashboardData'
 import './OddsTicker.css'
 
-export default function OddsTicker() {
+export default function OddsTicker({ items }) {
   const trackRef = useRef(null)
 
   // Duplicate items so marquee loops seamlessly
-  const items = [...TICKER_DATA, ...TICKER_DATA]
+  const marqueeItems = [...items, ...items]
 
   return (
     <div className="odds-ticker" id="odds-ticker">
@@ -16,7 +15,7 @@ export default function OddsTicker() {
       </div>
       <div className="ticker-track-wrapper">
         <div className="ticker-track" ref={trackRef}>
-          {items.map((t, i) => (
+          {marqueeItems.map((t, i) => (
             <div className="ticker-item" key={i}>
               <span className="ticker-sport">{t.sport}</span>
               <span className="ticker-line">{t.label}</span>

@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { SPORT_META } from '../utils/dashboardData'
 import './SportSelector.css'
 
-const SPORTS = Object.entries(SPORT_META).map(([key, meta]) => ({
-  key,
-  name: meta.label,
-  icon: meta.icon,
-  games: meta.games,
-  edges: meta.edges,
-}))
-
-export default function SportSelector({ selectedSport, onSelectSport, disabled }) {
+export default function SportSelector({ selectedSport, onSelectSport, disabled, sportMeta = {} }) {
   const [animating, setAnimating] = useState(null)
+
+  const SPORTS = Object.entries(sportMeta).map(([key, meta]) => ({
+    key,
+    name: meta.label,
+    icon: meta.icon,
+    games: meta.games,
+    edges: meta.edges,
+  }))
 
   const handleSelect = (sport) => {
     if (disabled) return

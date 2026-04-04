@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import MeshBackground from './components/MeshBackground'
 import Header from './components/Header'
 import SportSelector from './components/SportSelector'
@@ -14,11 +14,13 @@ import BigBoard from './components/BigBoard'
 import ValueProp from './components/ValueProp'
 import AuthModal from './components/AuthModal'
 import { useAuth } from './contexts/AuthContext'
+import { fetchDashboardData } from './utils/api'
 
 export default function App() {
   const [unitSize, setUnitSize] = useState(50)
   const [betFilter, setBetFilter] = useState('all')
   const [showAuth, setShowAuth] = useState(false)
+  const [dashboardData, setDashboardData] = useState(null)
   const { user } = useAuth()
   const {
     phase,
@@ -31,6 +33,12 @@ export default function App() {
     reset,
     reanalyze,
   } = useAnalysis()
+
+  useEffect(() => {
+    fetchDashboardData()
+      .then(data => setDashboardData(data))
+      .catch(err => console.error('Error fetching dashboard data:', err))
+  }, [])
 
   const handleSelectSport = (sport) => {
     if (!user) {
@@ -77,7 +85,7 @@ export default function App() {
       <div className="grain-overlay" />
 
       {/* Live Odds Ticker — always visible on homepage */}
-      {phase === 'select' && <OddsTicker />}
+      {phase === 'select' && dashboardData && <OddsTicker items={dashboardData.tickerData} />}
 
       <div className="app">
         <Header
@@ -121,16 +129,19 @@ export default function App() {
               </div>
 
               {/* Big Board — Marquee Games */}
-              <BigBoard />
+              {dashboardData ? <BigBoard games={dashboardData.bigBoardData} /> : <div style={{textAlign: 'center', padding: '2rem'}}>Loading Live Games...</div>}
 
               {/* Value Proposition */}
               <ValueProp />
 
-              <SportSelector
-                selectedSport={selectedSport}
-                onSelectSport={handleSelectSport}
-                disabled={false}
-              />
+              {dashboardData ? (
+                <SportSelector
+                  selectedSport={selectedSport}
+                  onSelectSport={handleSelectSport}
+                  disabled={false}
+                  sportMeta={dashboardData.sportMeta}
+                />
+              ) : null}
             </>
           )}
 

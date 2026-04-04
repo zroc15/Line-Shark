@@ -1,7 +1,8 @@
-import { BIG_BOARD_GAMES } from '../utils/dashboardData'
 import './BigBoard.css'
 
-export default function BigBoard() {
+export default function BigBoard({ games }) {
+  if (!games || games.length === 0) return null
+
   return (
     <section className="big-board" id="big-board">
       <div className="big-board-header">
@@ -13,7 +14,7 @@ export default function BigBoard() {
       </div>
 
       <div className="big-board-grid">
-        {BIG_BOARD_GAMES.map((game, i) => (
+        {games.map((game, i) => (
           <div className="board-card interactive" key={i} id={`board-card-${i}`} style={{ animationDelay: `${i * 100}ms` }}>
             {/* Tag */}
             <div className={`board-tag board-tag--${game.tagColor}`}>

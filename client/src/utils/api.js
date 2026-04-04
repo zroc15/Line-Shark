@@ -16,6 +16,14 @@ export async function analyzeGames(sport, unitSize) {
   return response.json()
 }
 
+export async function fetchDashboardData() {
+  const response = await fetch(`${API_BASE}/dashboard`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch dashboard data')
+  }
+  return response.json()
+}
+
 export function createAnalysisStream(sport, unitSize, callbacks) {
   // SSE connection for real-time pipeline progress
   // Will be used when backend is connected
