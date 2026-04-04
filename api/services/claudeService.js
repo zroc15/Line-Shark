@@ -69,7 +69,7 @@ export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
     })
 
     const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8000,
         system: SYSTEM_PROMPT,
         messages: [

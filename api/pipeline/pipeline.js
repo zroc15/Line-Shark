@@ -26,17 +26,15 @@ export async function runPipeline(sport, unitSize, sseWriter) {
     sseWriter.log(`Found ${odds.length} events across ${bookCount.size} books`)
     sseWriter.log(`Odds API requests remaining: ${getRemainingRequests()}`)
     
-    // Fetch props for all events as requested by the user
-    sseWriter.log(`Fetching player props for all ${activeEvents.length} active events...`)
-    const propsData = []
-    const eventsToFetch = activeEvents
-    
-    for (const event of eventsToFetch) {
-      const props = await getPlayerProps(sport, event.id)
-      if (props && props.bookmakers && props.bookmakers.length > 0) {
-         propsData.push(props)
-      }
-    }
+    // Fetch props for up to 3 events to avoid rate limiting
+    const eventsToFetch = activeEvents.slice(0, 3)
+    sseWriter.log(`Fetching player props for top ${eventsToFetch.length} of ${activeEvents.length} events...`)
+    const propsResults = await Promise.allSettled(
+      eventsToFetch.map(event => getPlayerProps(sport, event.id))
+    )
+    const propsData = propsResults
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.bookmakers && r.value.bookmakers.length > 0)
+      .map(r => r.value)
     
     sseWriter.log(`Fetched player props for ${propsData.length} events. Requests remaining: ${getRemainingRequests()}`)
     sseWriter.stage('scrape', 'complete')
