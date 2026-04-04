@@ -9,14 +9,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check active sessions and sets the user
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    // Listen for changes on auth state (log in, log out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -28,9 +31,9 @@ export function AuthProvider({ children }) {
 
   // Will be passed down to AuthContext.Provider
   const value = {
-    signUp: (data) => supabase.auth.signUp(data),
-    signIn: (data) => supabase.auth.signInWithPassword(data),
-    signOut: () => supabase.auth.signOut(),
+    signUp: (data) => supabase?.auth.signUp(data),
+    signIn: (data) => supabase?.auth.signInWithPassword(data),
+    signOut: () => supabase?.auth.signOut(),
     user,
     session,
     loading,

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createAnalysisStream } from '../utils/api'
 
 export default function useAnalysis() {
@@ -12,16 +12,26 @@ export default function useAnalysis() {
     error: null,
   })
 
-  // Mock delays were removed
+  const cancelRef = useRef(null)
 
-  const addLog = useCallback((log) => {
+  // Cleanup EventSource on unmount
+  useEffect(() => {
+    return () => { cancelRef.current?.() }
+  }, [])
+
+  const addLog = useCallback((message) => {
+    const now = new Date()
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     setState(prev => ({
       ...prev,
-      logs: [...prev.logs, log],
+      logs: [...prev.logs, { time, message, type: '' }],
     }))
   }, [])
 
-  const runLivePipeline = useCallback((sport) => {
+  const runLivePipeline = useCallback((sport, unitSize = 50) => {
+    // Close any existing stream
+    cancelRef.current?.()
+
     setState({
       phase: 'analyzing',
       selectedSport: sport,
@@ -32,20 +42,20 @@ export default function useAnalysis() {
       error: null,
     })
 
-    // This returns the unsubscribe/close function
-    const cancelStream = createAnalysisStream(sport, 50, {
+    cancelRef.current = createAnalysisStream(sport, unitSize, {
       onStage: (data) => {
         if (data.status === 'started') {
            setState(prev => ({ ...prev, currentStage: data.stage }))
         } else if (data.status === 'complete') {
-           setState(prev => ({ 
-             ...prev, 
+           setState(prev => ({
+             ...prev,
              completedStages: [...prev.completedStages, data.stage]
            }))
         }
       },
       onLog: (data) => addLog(data.message),
       onResult: (results) => {
+        cancelRef.current = null
         setState(prev => ({
           ...prev,
           phase: 'results',
@@ -54,12 +64,11 @@ export default function useAnalysis() {
         }))
       },
       onError: (errMessage) => {
+         cancelRef.current = null
          addLog(`ERROR: ${errMessage}`)
          setState(prev => ({ ...prev, error: errMessage }))
       }
     })
-    
-    // Cleanup reference if needed here.
   }, [addLog])
 
   const startAnalysis = useCallback((sport) => {

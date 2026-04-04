@@ -23,18 +23,25 @@ export async function runPipeline(sport, unitSize, sseWriter) {
        })
     }
     
-    sseWriter.log(`Found ${odds.length} events across ${bookCount.size} books`)
+    sseWriter.log(`Found ${activeEvents.length} events across ${bookCount.size} books`)
     sseWriter.log(`Odds API requests remaining: ${getRemainingRequests()}`)
     
-    // Fetch props for up to 3 events to avoid rate limiting
+    // Fetch props for up to 3 events SEQUENTIALLY to avoid rate limiting
     const eventsToFetch = activeEvents.slice(0, 3)
     sseWriter.log(`Fetching player props for top ${eventsToFetch.length} of ${activeEvents.length} events...`)
-    const propsResults = await Promise.allSettled(
-      eventsToFetch.map(event => getPlayerProps(sport, event.id))
-    )
-    const propsData = propsResults
-      .filter(r => r.status === 'fulfilled' && r.value && r.value.bookmakers && r.value.bookmakers.length > 0)
-      .map(r => r.value)
+    const propsData = []
+    for (const event of eventsToFetch) {
+      // Delay between requests to avoid 429
+      await new Promise(resolve => setTimeout(resolve, 1200))
+      try {
+        const props = await getPlayerProps(sport, event.id)
+        if (props && props.bookmakers && props.bookmakers.length > 0) {
+          propsData.push(props)
+        }
+      } catch (e) {
+        sseWriter.log(`⚠ Props fetch failed for ${event.home_team} vs ${event.away_team}: ${e.message}`)
+      }
+    }
     
     sseWriter.log(`Fetched player props for ${propsData.length} events. Requests remaining: ${getRemainingRequests()}`)
     sseWriter.stage('scrape', 'complete')
@@ -61,7 +68,7 @@ export async function runPipeline(sport, unitSize, sseWriter) {
     // Stage 3: ANALYZE — Send to Claude
     sseWriter.stage('analyze', 'started')
     sseWriter.log('Sending compiled data to Claude Sonnet 4.6 for analysis...')
-    sseWriter.log(`Analyzing ${odds.length} events × multiple markets...`)
+    sseWriter.log(`Analyzing ${activeEvents.length} events × multiple markets...`)
     
     const results = await analyze(sport, odds, propsData, intel, unitSize)
     

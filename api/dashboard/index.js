@@ -1,4 +1,4 @@
-export const maxDuration = 15; // 15s timeout is plenty for this rapid fetch
+export const maxDuration = 30; // Sequential fetching needs more time
 
 import { getOdds } from '../services/oddsService.js'
 
@@ -15,11 +15,19 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
 
   try {
-    // Fetch odds for all sports in parallel to minimize wait time
-    const results = await Promise.allSettled(sports.map(sport => getOdds(sport).catch(e => {
-       console.warn(`Dashboard fetch warning for ${sport}:`, e.message)
-       return { error: e.message }
-    })))
+    // Fetch odds SEQUENTIALLY with a delay to avoid 429 rate limiting on free tier
+    const results = []
+    for (const sport of sports) {
+      try {
+        const data = await getOdds(sport)
+        results.push({ status: 'fulfilled', value: data })
+      } catch (e) {
+        console.warn(`Dashboard fetch warning for ${sport}:`, e.message)
+        results.push({ status: 'fulfilled', value: { error: e.message } })
+      }
+      // Wait 1.2 seconds between requests to respect rate limits
+      await new Promise(resolve => setTimeout(resolve, 1200))
+    }
 
     let tickerData = []
     let bigBoardData = []

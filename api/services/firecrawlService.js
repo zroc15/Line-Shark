@@ -1,4 +1,3 @@
-const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY
 const FIRECRAWL_API_BASE = 'https://api.firecrawl.dev/v1'
 
 const URL_MAP = {
@@ -25,6 +24,7 @@ const URL_MAP = {
 }
 
 async function scrapeUrl(url) {
+    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY
     if (!FIRECRAWL_API_KEY) throw new Error('FIRECRAWL_API_KEY is not defined')
 
     try {
