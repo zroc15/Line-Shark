@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     // Fetch odds for all sports in parallel to minimize wait time
     const results = await Promise.allSettled(sports.map(sport => getOdds(sport).catch(e => {
        console.warn(`Dashboard fetch warning for ${sport}:`, e.message)
-       return []
+       return { error: e.message }
     })))
 
     let tickerData = []
@@ -29,9 +29,24 @@ export default async function handler(req, res) {
     const labels = { nba: 'NBA', nfl: 'NFL', mlb: 'MLB', nhl: 'NHL', mls: 'MLS' }
     const tagColors = ['green', 'cyan', 'orange']
 
+    let debugErrors = []
+
     sports.forEach((sport, i) => {
         const fetchResult = results[i]
-        const games = fetchResult.status === 'fulfilled' && Array.isArray(fetchResult.value) ? fetchResult.value : []
+        
+        let games = []
+        if (fetchResult.status === 'fulfilled') {
+            if (Array.isArray(fetchResult.value)) {
+                games = fetchResult.value
+            } else if (fetchResult.value && fetchResult.value.error) {
+                // We caught an error returning an object
+                debugErrors.push(`${sport}: ${fetchResult.value.error}`)
+            } else {
+                debugErrors.push(`${sport}: Unexpected response format`)
+            }
+        } else {
+            debugErrors.push(`${sport}: ${fetchResult.reason}`)
+        }
         
         sportMeta[sport] = {
             games: games.length,
@@ -99,7 +114,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
        tickerData: tickerData.length > 0 ? tickerData : [{ sport: '📡', label: 'No Active Lines', movement: 'up', curr: '-', prev: '-', book: 'SYS' }],
        bigBoardData,
-       sportMeta
+       sportMeta,
+       debugErrors
     })
 
   } catch (error) {

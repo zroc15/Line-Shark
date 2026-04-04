@@ -1,4 +1,3 @@
-const ODDS_API_KEY = process.env.ODDS_API_KEY
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4'
 
 const SPORT_MAP = {
@@ -14,6 +13,8 @@ let remainingRequests = 'Unknown'
 export async function getOdds(sport) {
   const sportKey = SPORT_MAP[sport]
   if (!sportKey) throw new Error(`Unsupported sport: ${sport}`)
+  
+  const ODDS_API_KEY = process.env.ODDS_API_KEY
   if (!ODDS_API_KEY) throw new Error('ODDS_API_KEY is not defined')
 
   const url = new URL(`${ODDS_API_BASE}/sports/${sportKey}/odds`)
@@ -43,6 +44,8 @@ export async function getOdds(sport) {
 export async function getPlayerProps(sport, eventId) {
     const sportKey = SPORT_MAP[sport]
     if (!sportKey) throw new Error(`Unsupported sport: ${sport}`)
+    
+    const ODDS_API_KEY = process.env.ODDS_API_KEY
     if (!ODDS_API_KEY) throw new Error('ODDS_API_KEY is not defined')
   
     // Fetch a few key player props. This is a generic list, might need refinement per sport
