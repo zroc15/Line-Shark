@@ -35,11 +35,25 @@ export function createAnalysisStream(sport, unitSize, callbacks) {
     eventSource.close()
   })
 
-  eventSource.addEventListener('error', () => {
+  // Listen for our custom pipeline error events (these carry the real error message)
+  eventSource.addEventListener('error', (e) => {
     clearTimeout(timeout)
-    callbacks.onError?.('Connection lost')
+    try {
+      const data = JSON.parse(e.data)
+      callbacks.onError?.(data.message || 'Pipeline error')
+    } catch {
+      // This is a generic EventSource connection error, not our custom event
+      callbacks.onError?.('Connection lost — server may have timed out')
+    }
     eventSource.close()
   })
+
+  // Handle native EventSource connection errors (network drops, timeouts)
+  eventSource.onerror = () => {
+    clearTimeout(timeout)
+    callbacks.onError?.('Connection lost — server may have timed out')
+    eventSource.close()
+  }
 
   return () => {
     clearTimeout(timeout)

@@ -70,8 +70,21 @@ export async function runPipeline(sport, unitSize, sseWriter) {
     sseWriter.log('Sending compiled data to Claude Sonnet 4.6 for analysis...')
     sseWriter.log(`Analyzing ${activeEvents.length} events × multiple markets...`)
     
-    const results = await analyze(sport, odds, propsData, intel, unitSize)
+    let results
+    try {
+      results = await analyze(sport, odds, propsData, intel, unitSize)
+    } catch (claudeErr) {
+      sseWriter.log(`⚠ Claude failed: ${claudeErr.message}`)
+      sseWriter.error(`Claude analysis failed: ${claudeErr.message}`)
+      return
+    }
     
+    if (!results || results.length === 0) {
+      sseWriter.log('⚠ Claude returned no analyses')
+      sseWriter.error('Analysis returned empty results. Try again.')
+      return
+    }
+
     sseWriter.log(`Analysis complete — ${results.filter(r => r.rating === 'BUY').length} BUY signals found`)
     sseWriter.stage('analyze', 'complete')
 
@@ -79,6 +92,7 @@ export async function runPipeline(sport, unitSize, sseWriter) {
     sseWriter.result(results)
 
   } catch (error) {
+    console.error('Pipeline error:', error)
     sseWriter.error(error.message || 'Pipeline failed')
   }
 }

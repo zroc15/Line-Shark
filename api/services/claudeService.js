@@ -50,94 +50,129 @@ Analyze live odds data and real-time intelligence to identify MISPRICED LINES. R
 5. For player props: recent usage/volume matters more than season averages.
 6. For totals: pace, defensive efficiency, and weather are the three pillars.
 7. Always explain your reasoning as if talking to a sharp bettor, not a casual fan.
+8. Be CONCISE in reasoning — 2-3 sentences max per analysis. No fluff.
 
 ## Output Format
 Analyze the provided game odds, player props, injuries, and news, then use the submit_analysis tool to output the structured betting lines.
 You must analyze EVERY game and output at least one analysis object per game.
 `
 
+// Trim odds data to keep payload small — only keep top 3 bookmakers per event
+function trimOddsData(oddsData) {
+  if (!Array.isArray(oddsData)) return []
+  return oddsData.map(event => ({
+    id: event.id,
+    sport_key: event.sport_key,
+    home_team: event.home_team,
+    away_team: event.away_team,
+    commence_time: event.commence_time,
+    bookmakers: (event.bookmakers || []).slice(0, 3) // Only top 3 books
+  }))
+}
+
+// Trim intel markdown to prevent massive token usage
+function trimIntel(intelData) {
+  if (!intelData) return null
+  return {
+    injuries: intelData.injuries ? intelData.injuries.slice(0, 3000) : null,
+    news: intelData.news ? intelData.news.slice(0, 2000) : null,
+  }
+}
+
 export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
-    const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-    })
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not defined')
+
+    const anthropic = new Anthropic({ apiKey })
+
+    // Trim data to keep tokens manageable and speed up response
+    const trimmedOdds = trimOddsData(oddsData)
+    const trimmedIntel = trimIntel(intelData)
 
     const payloadText = JSON.stringify({
         sport,
-        odds: oddsData,
+        odds: trimmedOdds,
         props: propsData,
-        intel: intelData
+        intel: trimmedIntel
     })
 
-    const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
-        system: SYSTEM_PROMPT,
-        messages: [
-            {
-                role: 'user',
-                content: `Here is the live data for ${sport.toUpperCase()}:\n\n${payloadText}\n\nAnalyze this data, synthesize the injury/news intel with the odds, evaluate edges, and submit your analysis using the submit_analysis tool.`
-            }
-        ],
-        tools: [
-            {
-                name: 'submit_analysis',
-                description: 'Submit the final structured bet analysis for all games on the slate.',
-                input_schema: {
-                    type: 'object',
-                    properties: {
-                        analyses: {
-                            type: 'array',
-                            description: 'A list of distinct bet analyses (can be multiple per game: spread, total, player prop, etc.)',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    id: { type: 'string', description: 'Unique identifier for the bet e.g. nba-lal-bos-spread' },
-                                    matchup: { type: 'string', description: 'Matchup e.g. Lakers vs Celtics' },
-                                    homeTeam: { type: 'string' },
-                                    awayTeam: { type: 'string' },
-                                    time: { type: 'string', description: 'Start time of the event' },
-                                    marketType: { type: 'string', enum: ['spread', 'moneyline', 'total', 'player_prop', 'first_half', 'team_total', 'alt_line'] },
-                                    specificBet: { type: 'string', description: 'e.g. Lakers -3.5 or LeBron Over 28.5 Points' },
-                                    odds: { type: 'string', description: 'e.g. -110' },
-                                    bestBook: { type: 'string', description: 'Name of the book with these odds' },
-                                    bookComparison: {
-                                        type: 'array',
-                                        items: {
-                                            type: 'object',
-                                            properties: {
-                                                book: { type: 'string' },
-                                                line: { type: 'string' },
-                                                odds: { type: 'string' }
-                                            },
-                                            required: ['book', 'line', 'odds']
-                                        }
-                                    },
-                                    rating: { type: 'string', enum: ['BUY', 'BYE'] },
-                                    confidence: { type: 'number', description: '1-10 integer' },
-                                    units: { type: 'number', description: 'Calculated units based on confidence' },
-                                    edgePercent: { type: 'number' },
-                                    keyFactors: { type: 'array', items: { type: 'string' } },
-                                    riskFactors: { type: 'array', items: { type: 'string' } },
-                                    reasoning: { type: 'string' },
-                                    recentForm: { type: 'array', items: { type: 'string', enum: ['W', 'L', 'D'] } }
-                                },
-                                required: ['id', 'matchup', 'homeTeam', 'awayTeam', 'time', 'marketType', 'specificBet', 'odds', 'bestBook', 'rating', 'confidence', 'units', 'edgePercent', 'reasoning']
-                            }
-                        }
-                    },
-                    required: ['analyses']
+    console.log(`Claude payload size: ~${Math.round(payloadText.length / 4)} tokens`)
+
+    try {
+        const response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 6000,
+            system: SYSTEM_PROMPT,
+            messages: [
+                {
+                    role: 'user',
+                    content: `Here is the live data for ${sport.toUpperCase()}:\n\n${payloadText}\n\nAnalyze this data, synthesize the injury/news intel with the odds, evaluate edges, and submit your analysis using the submit_analysis tool. Be concise.`
                 }
-            }
-        ],
-        tool_choice: { type: 'tool', name: 'submit_analysis' }
-    })
+            ],
+            tools: [
+                {
+                    name: 'submit_analysis',
+                    description: 'Submit the final structured bet analysis for all games on the slate.',
+                    input_schema: {
+                        type: 'object',
+                        properties: {
+                            analyses: {
+                                type: 'array',
+                                description: 'A list of distinct bet analyses (can be multiple per game: spread, total, player prop, etc.)',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        id: { type: 'string', description: 'Unique identifier for the bet e.g. nba-lal-bos-spread' },
+                                        matchup: { type: 'string', description: 'Matchup e.g. Lakers vs Celtics' },
+                                        homeTeam: { type: 'string' },
+                                        awayTeam: { type: 'string' },
+                                        time: { type: 'string', description: 'Start time of the event' },
+                                        marketType: { type: 'string', enum: ['spread', 'moneyline', 'total', 'player_prop', 'first_half', 'team_total', 'alt_line'] },
+                                        specificBet: { type: 'string', description: 'e.g. Lakers -3.5 or LeBron Over 28.5 Points' },
+                                        odds: { type: 'string', description: 'e.g. -110' },
+                                        bestBook: { type: 'string', description: 'Name of the book with these odds' },
+                                        bookComparison: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    book: { type: 'string' },
+                                                    line: { type: 'string' },
+                                                    odds: { type: 'string' }
+                                                },
+                                                required: ['book', 'line', 'odds']
+                                            }
+                                        },
+                                        rating: { type: 'string', enum: ['BUY', 'BYE'] },
+                                        confidence: { type: 'number', description: '1-10 integer' },
+                                        units: { type: 'number', description: 'Calculated units based on confidence' },
+                                        edgePercent: { type: 'number' },
+                                        keyFactors: { type: 'array', items: { type: 'string' } },
+                                        riskFactors: { type: 'array', items: { type: 'string' } },
+                                        reasoning: { type: 'string' },
+                                        recentForm: { type: 'array', items: { type: 'string', enum: ['W', 'L', 'D'] } }
+                                    },
+                                    required: ['id', 'matchup', 'homeTeam', 'awayTeam', 'time', 'marketType', 'specificBet', 'odds', 'bestBook', 'rating', 'confidence', 'units', 'edgePercent', 'reasoning']
+                                }
+                            }
+                        },
+                        required: ['analyses']
+                    }
+                }
+            ],
+            tool_choice: { type: 'tool', name: 'submit_analysis' }
+        })
 
-    const toolUseBlock = response.content.find(block => block.type === 'tool_use' && block.name === 'submit_analysis')
-    
-    if (toolUseBlock && toolUseBlock.input && toolUseBlock.input.analyses) {
-        return toolUseBlock.input.analyses
+        const toolUseBlock = response.content.find(block => block.type === 'tool_use' && block.name === 'submit_analysis')
+        
+        if (toolUseBlock && toolUseBlock.input && toolUseBlock.input.analyses) {
+            return toolUseBlock.input.analyses
+        }
+
+        console.warn('Claude did not return analyses via tool_use. Response:', JSON.stringify(response.content).slice(0, 500))
+        return []
+    } catch (error) {
+        console.error('Claude API Error:', error.message || error)
+        throw new Error(`Claude analysis failed: ${error.message}`)
     }
-
-    console.warn('Claude did not return analyses properly', response)
-    return []
 }
