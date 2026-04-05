@@ -29,6 +29,7 @@ export default function App() {
     completedStages,
     logs,
     results,
+    lastUpdated,
     startAnalysis,
     reset,
     reanalyze,
@@ -187,6 +188,9 @@ export default function App() {
                       day: 'numeric',
                       year: 'numeric',
                     })} · {sortedResults.length} markets analyzed · <span style={{color: 'var(--success-color)'}}>LIVE DATA</span>
+                    {lastUpdated && (
+                      <span> · Updated {new Date(lastUpdated).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                    )}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>

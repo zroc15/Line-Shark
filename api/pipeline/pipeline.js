@@ -67,8 +67,9 @@ export async function runPipeline(sport, unitSize, sseWriter) {
 
     // Stage 3: ANALYZE — Send to Claude
     sseWriter.stage('analyze', 'started')
-    sseWriter.log('Sending compiled data to Claude Sonnet 4.6 for analysis...')
-    sseWriter.log(`Analyzing ${activeEvents.length} events × multiple markets...`)
+    sseWriter.log('Sending compiled data to Claude 3.5 Sonnet for analysis...')
+    const analyzeCount = Math.min(activeEvents.length, 6)
+    sseWriter.log(`Analyzing top ${analyzeCount} of ${activeEvents.length} events...`)
     
     let results
     try {

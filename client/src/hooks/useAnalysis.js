@@ -1,5 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { createAnalysisStream } from '../utils/api'
+import { useState, useCallback } from 'react'
+import { fetchAnalysis } from '../utils/api'
+
+const STAGES = ['scrape', 'intel', 'analyze']
+const STAGE_MESSAGES = {
+  scrape: ['Connecting to The Odds API...', 'Pulling live spreads, moneylines, totals...', 'Scanning 12+ sportsbooks...'],
+  intel: ['Scraping injury reports...', 'Gathering latest headlines...', 'Cross-referencing intel...'],
+  analyze: ['Claude AI analyzing edges...', 'Calculating implied probabilities...', 'Generating BUY/BYE signals...'],
+}
 
 export default function useAnalysis() {
   const [state, setState] = useState({
@@ -9,15 +16,9 @@ export default function useAnalysis() {
     completedStages: [],
     logs: [],
     results: null,
+    lastUpdated: null,
     error: null,
   })
-
-  const cancelRef = useRef(null)
-
-  // Cleanup EventSource on unmount
-  useEffect(() => {
-    return () => { cancelRef.current?.() }
-  }, [])
 
   const addLog = useCallback((message) => {
     const now = new Date()
@@ -28,10 +29,7 @@ export default function useAnalysis() {
     }))
   }, [])
 
-  const runLivePipeline = useCallback((sport, unitSize = 50) => {
-    // Close any existing stream
-    cancelRef.current?.()
-
+  const startAnalysis = useCallback(async (sport) => {
     setState({
       phase: 'analyzing',
       selectedSport: sport,
@@ -39,41 +37,59 @@ export default function useAnalysis() {
       completedStages: [],
       logs: [],
       results: null,
+      lastUpdated: null,
       error: null,
     })
 
-    cancelRef.current = createAnalysisStream(sport, unitSize, {
-      onStage: (data) => {
-        if (data.status === 'started') {
-           setState(prev => ({ ...prev, currentStage: data.stage }))
-        } else if (data.status === 'complete') {
-           setState(prev => ({
-             ...prev,
-             completedStages: [...prev.completedStages, data.stage]
-           }))
+    // Run a UX animation while fetching cached results
+    // This gives the premium "analyzing" feel even though results are instant
+    const animationPromise = new Promise(async (resolve) => {
+      for (const stage of STAGES) {
+        setState(prev => ({ ...prev, currentStage: stage }))
+        
+        // Add logs for this stage
+        for (const msg of STAGE_MESSAGES[stage]) {
+          addLog(msg)
+          await new Promise(r => setTimeout(r, 300 + Math.random() * 200))
         }
-      },
-      onLog: (data) => addLog(data.message),
-      onResult: (results) => {
-        cancelRef.current = null
+        
+        setState(prev => ({
+          ...prev,
+          completedStages: [...prev.completedStages, stage],
+        }))
+        await new Promise(r => setTimeout(r, 200))
+      }
+      resolve()
+    })
+
+    // Fetch cached results from Supabase (runs in parallel with animation)
+    const fetchPromise = fetchAnalysis(sport)
+
+    try {
+      // Wait for BOTH the animation and the fetch to complete
+      const [_, data] = await Promise.all([animationPromise, fetchPromise])
+
+      if (data.results && data.results.length > 0) {
+        addLog(`Analysis complete — ${data.results.filter(r => r.rating === 'BUY').length} BUY signals found`)
         setState(prev => ({
           ...prev,
           phase: 'results',
           currentStage: null,
-          results: results,
+          results: data.results,
+          lastUpdated: data.lastUpdated,
         }))
-      },
-      onError: (errMessage) => {
-         cancelRef.current = null
-         addLog(`ERROR: ${errMessage}`)
-         setState(prev => ({ ...prev, error: errMessage }))
+      } else {
+        addLog('No analysis available yet — check back soon')
+        setState(prev => ({
+          ...prev,
+          error: data.message || 'No analysis available yet. The system runs every 3 hours — check back soon!',
+        }))
       }
-    })
+    } catch (err) {
+      addLog(`ERROR: ${err.message}`)
+      setState(prev => ({ ...prev, error: err.message }))
+    }
   }, [addLog])
-
-  const startAnalysis = useCallback((sport) => {
-    runLivePipeline(sport)
-  }, [runLivePipeline])
 
   const reset = useCallback(() => {
     setState({
@@ -83,15 +99,16 @@ export default function useAnalysis() {
       completedStages: [],
       logs: [],
       results: null,
+      lastUpdated: null,
       error: null,
     })
   }, [])
 
   const reanalyze = useCallback(() => {
     if (state.selectedSport) {
-      runLivePipeline(state.selectedSport)
+      startAnalysis(state.selectedSport)
     }
-  }, [state.selectedSport, runLivePipeline])
+  }, [state.selectedSport, startAnalysis])
 
   return {
     ...state,

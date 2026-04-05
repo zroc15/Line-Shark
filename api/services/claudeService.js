@@ -57,25 +57,28 @@ Analyze the provided game odds, player props, injuries, and news, then use the s
 You must analyze EVERY game and output at least one analysis object per game.
 `
 
-// Trim odds data to keep payload small — only keep top 3 bookmakers per event
+// Trim odds data aggressively: max 6 events, 2 bookmakers each
 function trimOddsData(oddsData) {
   if (!Array.isArray(oddsData)) return []
-  return oddsData.map(event => ({
+  return oddsData.slice(0, 6).map(event => ({
     id: event.id,
-    sport_key: event.sport_key,
     home_team: event.home_team,
     away_team: event.away_team,
     commence_time: event.commence_time,
-    bookmakers: (event.bookmakers || []).slice(0, 3) // Only top 3 books
+    bookmakers: (event.bookmakers || []).slice(0, 2).map(bk => ({
+      key: bk.key,
+      title: bk.title,
+      markets: bk.markets
+    }))
   }))
 }
 
-// Trim intel markdown to prevent massive token usage
+// Trim intel markdown hard to prevent massive token usage
 function trimIntel(intelData) {
   if (!intelData) return null
   return {
-    injuries: intelData.injuries ? intelData.injuries.slice(0, 3000) : null,
-    news: intelData.news ? intelData.news.slice(0, 2000) : null,
+    injuries: intelData.injuries ? intelData.injuries.slice(0, 2000) : null,
+    news: intelData.news ? intelData.news.slice(0, 1500) : null,
   }
 }
 
@@ -85,14 +88,17 @@ export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
 
     const anthropic = new Anthropic({ apiKey })
 
-    // Trim data to keep tokens manageable and speed up response
+    // Trim data to keep tokens manageable and stay under Vercel's 60s timeout
     const trimmedOdds = trimOddsData(oddsData)
     const trimmedIntel = trimIntel(intelData)
+    // Only send props for the events we're actually analyzing
+    const trimmedOddsIds = new Set(trimmedOdds.map(e => e.id))
+    const trimmedProps = (propsData || []).filter(p => trimmedOddsIds.has(p.id)).slice(0, 3)
 
     const payloadText = JSON.stringify({
         sport,
         odds: trimmedOdds,
-        props: propsData,
+        props: trimmedProps,
         intel: trimmedIntel
     })
 
@@ -100,8 +106,8 @@ export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
 
     try {
         const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 6000,
+            model: 'claude-3-5-sonnet-latest',
+            max_tokens: 4096,
             system: SYSTEM_PROMPT,
             messages: [
                 {

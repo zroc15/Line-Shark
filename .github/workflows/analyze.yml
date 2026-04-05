@@ -1,0 +1,43 @@
+name: Line Shark Analysis Cron
+
+on:
+  schedule:
+    # Run every 3 hours
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+    # Allow manual triggers from GitHub UI
+    inputs:
+      sport:
+        description: 'Sport to analyze (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger analysis pipeline
+        run: |
+          SPORT_PARAM=""
+          if [ -n "${{ github.event.inputs.sport }}" ]; then
+            SPORT_PARAM="?sport=${{ github.event.inputs.sport }}"
+          fi
+          
+          echo "Triggering analysis at ${{ secrets.VERCEL_URL }}/api/cron/analyze${SPORT_PARAM}"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.VERCEL_URL }}/api/cron/analyze${SPORT_PARAM}")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Analysis failed with status $HTTP_CODE"
+            exit 1
+          fi
+          
+          echo "✅ Analysis complete"
