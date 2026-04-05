@@ -23,11 +23,18 @@ export default async function handler(req, res) {
 
   const results = {}
   const errors = {}
+  const debugLogs = []
+
+  // Wrap console.log to also push to our debug array
+  const log = (msg) => {
+    console.log(msg)
+    debugLogs.push(msg)
+  }
 
   for (const s of sportsToRun) {
-    console.log(`\n=== Running pipeline for ${s.toUpperCase()} ===`)
+    log(`\n=== Running pipeline for ${s.toUpperCase()} ===`)
     try {
-      const analysis = await runSportPipeline(s)
+      const analysis = await runSportPipeline(s, log)
       
       if (analysis && analysis.length > 0) {
         // Save to Supabase
@@ -46,14 +53,14 @@ export default async function handler(req, res) {
           errors[s] = `DB error: ${dbError.message}`
         } else {
           results[s] = `${analysis.length} analyses saved`
-          console.log(`✅ ${s}: ${analysis.length} analyses saved to Supabase`)
+          log(`✅ ${s}: ${analysis.length} analyses saved to Supabase`)
         }
       } else {
         results[s] = 'No analyses generated'
-        console.log(`⚠ ${s}: No analyses generated`)
+        log(`⚠ ${s}: No analyses generated`)
       }
     } catch (err) {
-      console.error(`Pipeline error for ${s}:`, err.message)
+      log(`Pipeline error for ${s}: ${err.message}`)
       errors[s] = err.message
     }
 
@@ -67,22 +74,23 @@ export default async function handler(req, res) {
     timestamp: new Date().toISOString(),
     results,
     errors: Object.keys(errors).length > 0 ? errors : undefined,
+    debug: debugLogs
   })
 }
 
-async function runSportPipeline(sport) {
+async function runSportPipeline(sport, log) {
   // Step 1: Fetch odds
-  console.log(`  [${sport}] Fetching odds...`)
+  log(`  [${sport}] Fetching odds...`)
   const odds = await getOdds(sport)
   
   if (!odds || !Array.isArray(odds) || odds.length === 0) {
-    console.log(`  [${sport}] No active events found — skipping`)
+    log(`  [${sport}] No active events found — skipping`)
     return []
   }
-  console.log(`  [${sport}] Found ${odds.length} events`)
+  log(`  [${sport}] Found ${odds.length} events`)
 
   // Step 2: Fetch player props for top 3 events (with delays)
-  console.log(`  [${sport}] Fetching player props...`)
+  log(`  [${sport}] Fetching player props...`)
   const propsData = []
   const eventsForProps = odds.slice(0, 3)
   for (const event of eventsForProps) {
@@ -93,29 +101,29 @@ async function runSportPipeline(sport) {
         propsData.push(props)
       }
     } catch (e) {
-      console.warn(`  [${sport}] Props fetch failed for ${event.id}: ${e.message}`)
+      log(`  [${sport}] Props fetch failed for ${event.id}: ${e.message}`)
     }
   }
-  console.log(`  [${sport}] Got props for ${propsData.length} events`)
+  log(`  [${sport}] Got props for ${propsData.length} events`)
 
   // Step 3: Scrape intel (graceful degradation)
   let intel = null
   try {
-    console.log(`  [${sport}] Scraping intel...`)
+    log(`  [${sport}] Scraping intel...`)
     const [injuries, news] = await Promise.all([
       scrapeInjuryReport(sport).catch(() => null),
       scrapeNewsHeadlines(sport).catch(() => null),
     ])
     intel = { injuries, news }
-    console.log(`  [${sport}] Intel gathered`)
+    log(`  [${sport}] Intel gathered`)
   } catch (err) {
-    console.warn(`  [${sport}] Intel failed: ${err.message}`)
+    log(`  [${sport}] Intel failed: ${err.message}`)
   }
 
   // Step 4: Claude analysis
-  console.log(`  [${sport}] Running Claude analysis...`)
+  log(`  [${sport}] Running Claude analysis...`)
   const analysis = await analyze(sport, odds, propsData, intel, 50)
-  console.log(`  [${sport}] Claude returned ${analysis.length} analyses`)
+  log(`  [${sport}] Claude returned ${Array.isArray(analysis) ? analysis.length : 0} analyses`)
   
   return analysis
 }
