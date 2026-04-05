@@ -133,7 +133,7 @@ export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
             messages: [
                 {
                     role: 'user',
-                    content: `Here is the live data for ${sport.toUpperCase()}:\n\n${payloadText}\n\nAnalyze this data, synthesize the injury/news intel with the odds, evaluate edges, and submit your analysis using the submit_analysis tool. Be concise.`
+                    content: `Here is the live data for ${sport.toUpperCase()}:\n\n${payloadText}\n\nINSTRUCTIONS: Analyze this data carefully. You MUST use the submit_analysis tool and fully populate the "analyses" array. Do not return an empty object.`
                 }
             ],
             tools: [
