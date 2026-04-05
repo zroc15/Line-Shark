@@ -82,6 +82,26 @@ function trimIntel(intelData) {
   }
 }
 
+// Aggressively trim player props (the largest data object)
+function trimProps(propsData) {
+  if (!Array.isArray(propsData)) return []
+  return propsData.map(event => ({
+    id: event.id,
+    home_team: event.home_team,
+    away_team: event.away_team,
+    // Only take the first bookmaker (usually DraftKings/FanDuel) to save tokens
+    bookmakers: (event.bookmakers || []).slice(0, 1).map(b => ({
+      key: b.key,
+      // Only keep top 5 most bet markets
+      markets: (b.markets || []).slice(0, 5).map(m => ({
+        key: m.key,
+        // Only keep top 4 player outcomes per market
+        outcomes: (m.outcomes || []).slice(0, 4)
+      }))
+    }))
+  }))
+}
+
 export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not defined')
@@ -93,7 +113,8 @@ export async function analyze(sport, oddsData, propsData, intelData, unitSize) {
     const trimmedIntel = trimIntel(intelData)
     // Only send props for the events we're actually analyzing
     const trimmedOddsIds = new Set(trimmedOdds.map(e => e.id))
-    const trimmedProps = (propsData || []).filter(p => trimmedOddsIds.has(p.id)).slice(0, 3)
+    let trimmedProps = (propsData || []).filter(p => trimmedOddsIds.has(p.id)).slice(0, 3)
+    trimmedProps = trimProps(trimmedProps)
 
     const payloadText = JSON.stringify({
         sport,
