@@ -1,4 +1,4 @@
-export const maxDuration = 300; // 5 minutes — plenty of time for full pipeline
+export const maxDuration = 300; // 5 minutes per sport
 
 import { getSupabase } from '../lib/supabase.js'
 import { getOdds, getPlayerProps } from '../services/oddsService.js'
@@ -19,55 +19,76 @@ export default async function handler(req, res) {
   }
 
   const sport = req.query.sport // Optional: run for a single sport
-  const sportsToRun = sport ? [sport] : ACTIVE_SPORTS
 
-  const results = {}
-  const errors = {}
+  // If no sport specified, fan out — call ourselves once per sport in parallel
+  if (!sport) {
+    const baseUrl = `https://${req.headers.host}/api/cron/analyze`
+    const fanOutResults = {}
+    const fanOutErrors = {}
+
+    const promises = ACTIVE_SPORTS.map(async (s) => {
+      try {
+        const url = `${baseUrl}?sport=${s}`
+        const resp = await fetch(url, {
+          headers: authHeader ? { Authorization: authHeader } : {}
+        })
+        const data = await resp.json()
+        fanOutResults[s] = data.results?.[s] || 'unknown'
+        if (data.errors?.[s]) fanOutErrors[s] = data.errors[s]
+      } catch (err) {
+        fanOutErrors[s] = err.message
+      }
+    })
+
+    await Promise.all(promises)
+
+    return res.status(200).json({
+      timestamp: new Date().toISOString(),
+      mode: 'fan-out',
+      results: fanOutResults,
+      errors: Object.keys(fanOutErrors).length > 0 ? fanOutErrors : undefined,
+    })
+  }
+
+  // Single sport pipeline
   const debugLogs = []
-
-  // Wrap console.log to also push to our debug array
   const log = (msg) => {
     console.log(msg)
     debugLogs.push(msg)
   }
 
-  for (const s of sportsToRun) {
-    log(`\n=== Running pipeline for ${s.toUpperCase()} ===`)
-    try {
-      const analysis = await runSportPipeline(s, log)
-      
-      if (analysis && analysis.length > 0) {
-        // Save to Supabase
-        const supabase = getSupabase()
-        const { error: dbError } = await supabase
-          .from('analyses')
-          .insert({
-            sport: s,
-            results: analysis,
-            created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
-          })
-        
-        if (dbError) {
-          console.error(`Supabase insert error for ${s}:`, dbError)
-          errors[s] = `DB error: ${dbError.message}`
-        } else {
-          results[s] = `${analysis.length} analyses saved`
-          log(`✅ ${s}: ${analysis.length} analyses saved to Supabase`)
-        }
-      } else {
-        results[s] = 'No analyses generated'
-        log(`⚠ ${s}: No analyses generated`)
-      }
-    } catch (err) {
-      log(`Pipeline error for ${s}: ${err.message}`)
-      errors[s] = err.message
-    }
+  const results = {}
+  const errors = {}
 
-    // Delay between sports to respect rate limits
-    if (sportsToRun.indexOf(s) < sportsToRun.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+  log(`\n=== Running pipeline for ${sport.toUpperCase()} ===`)
+  try {
+    const analysis = await runSportPipeline(sport, log)
+
+    if (analysis && analysis.length > 0) {
+      const supabase = getSupabase()
+      const { error: dbError } = await supabase
+        .from('analyses')
+        .insert({
+          sport,
+          results: analysis,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+        })
+
+      if (dbError) {
+        console.error(`Supabase insert error for ${sport}:`, dbError)
+        errors[sport] = `DB error: ${dbError.message}`
+      } else {
+        results[sport] = `${analysis.length} analyses saved`
+        log(`✅ ${sport}: ${analysis.length} analyses saved to Supabase`)
+      }
+    } else {
+      results[sport] = 'No analyses generated'
+      log(`⚠ ${sport}: No analyses generated`)
     }
+  } catch (err) {
+    log(`Pipeline error for ${sport}: ${err.message}`)
+    errors[sport] = err.message
   }
 
   return res.status(200).json({
