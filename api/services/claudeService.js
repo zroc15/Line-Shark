@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001'
+const SONNET_MODEL = 'claude-sonnet-4-6-20250514'  // Main analysis — better reasoning for picks
+const HAIKU_MODEL = 'claude-haiku-4-5-20251001'    // Intel summarization — fast/cheap for extraction
 const MAX_RETRIES = 2
 const RETRY_DELAY_MS = 2000
 
@@ -328,7 +329,7 @@ async function analyzeGame(sport, normalizedEvent, props, intel, anthropic) {
 
   return withRetry(async () => {
     const response = await anthropic.messages.create({
-      model: HAIKU_MODEL,
+      model: SONNET_MODEL,
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{
