@@ -120,10 +120,10 @@ async function runSportPipeline(sport, log) {
     log(`  [${sport}] Intel failed: ${err.message}`)
   }
 
-  // Step 4: Claude analysis
-  log(`  [${sport}] Running Claude analysis...`)
+  // Step 4: Normalize → Summarize → Per-game Claude analysis
+  log(`  [${sport}] Running pipeline: normalize → summarize intel → parallel analysis...`)
   const analysis = await analyze(sport, odds, propsData, intel, 50)
-  log(`  [${sport}] Claude returned ${Array.isArray(analysis) ? analysis.length : 0} analyses`)
+  log(`  [${sport}] Pipeline returned ${Array.isArray(analysis) ? analysis.length : 0} analyses`)
   
   return analysis
 }
